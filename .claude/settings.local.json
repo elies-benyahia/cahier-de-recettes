@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(cmd /c \"tasklist /FI \\\\\"PID eq 14796\\\\\"\")",
-      "Bash(cmd /c \"tasklist /FI \\\\\"PID eq 28580\\\\\"\")"
-    ]
-  }
-}
