@@ -1,0 +1,584 @@
+openapi: 3.0.3
+info:
+  title: Cahier de Recettes API
+  description: |
+    API REST pour partager et gérer des recettes de cuisine.
+
+    ## Authentification
+    Les routes protégées nécessitent un token JWT.
+    Obtenez-le via `POST /auth/connexion` puis ajoutez-le dans le header :
+    `Authorization: Bearer <token>`
+  version: 1.0.0
+  contact:
+    name: Cahier de Recettes
+
+servers:
+  - url: http://localhost:3000
+    description: Serveur de développement
+
+tags:
+  - name: Auth
+    description: Inscription et connexion
+  - name: Utilisateurs
+    description: Gestion des comptes utilisateurs
+  - name: Recettes
+    description: CRUD des recettes
+  - name: Commentaires
+    description: Commentaires sur les recettes
+  - name: Likes
+    description: Système de likes
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Utilisateur:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "664f1a2b3c4d5e6f7a8b9c0d"
+        nom:
+          type: string
+          example: "Marie Dupont"
+        email:
+          type: string
+          example: "marie@example.com"
+        createdAt:
+          type: string
+          format: date-time
+
+    UtilisateurInput:
+      type: object
+      required:
+        - nom
+        - email
+        - motDePasse
+      properties:
+        nom:
+          type: string
+          example: "Marie Dupont"
+        email:
+          type: string
+          example: "marie@example.com"
+        motDePasse:
+          type: string
+          minLength: 6
+          example: "secret123"
+
+    ConnexionInput:
+      type: object
+      required:
+        - email
+        - motDePasse
+      properties:
+        email:
+          type: string
+          example: "marie@example.com"
+        motDePasse:
+          type: string
+          example: "secret123"
+
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        utilisateur:
+          type: object
+          properties:
+            id:
+              type: string
+            nom:
+              type: string
+            email:
+              type: string
+
+    Commentaire:
+      type: object
+      properties:
+        _id:
+          type: string
+        auteur:
+          $ref: '#/components/schemas/Utilisateur'
+        contenu:
+          type: string
+          example: "Délicieux ! J'ai adoré cette recette."
+        createdAt:
+          type: string
+          format: date-time
+
+    Recette:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "664f1a2b3c4d5e6f7a8b9c0e"
+        titre:
+          type: string
+          example: "Couscous royal"
+        description:
+          type: string
+          example: "La recette traditionnelle de Mamie"
+        ingredients:
+          type: array
+          items:
+            type: string
+          example: ["semoule", "agneau", "merguez", "courgette"]
+        etapes:
+          type: array
+          items:
+            type: string
+          example: ["Préparer la semoule", "Faire revenir la viande", "Servir chaud"]
+        auteur:
+          $ref: '#/components/schemas/Utilisateur'
+        categorie:
+          type: string
+          example: "Plat principal"
+        tempsPreparation:
+          type: integer
+          description: "En minutes"
+          example: 90
+        nbPersonnes:
+          type: integer
+          example: 6
+        likes:
+          type: array
+          items:
+            type: string
+        nbLikes:
+          type: integer
+          example: 12
+        commentaires:
+          type: array
+          items:
+            $ref: '#/components/schemas/Commentaire'
+        createdAt:
+          type: string
+          format: date-time
+
+    RecetteInput:
+      type: object
+      required:
+        - titre
+        - ingredients
+        - etapes
+      properties:
+        titre:
+          type: string
+          example: "Couscous royal"
+        description:
+          type: string
+          example: "La recette traditionnelle de Mamie"
+        ingredients:
+          type: array
+          items:
+            type: string
+          example: ["semoule", "agneau", "merguez"]
+        etapes:
+          type: array
+          items:
+            type: string
+          example: ["Préparer la semoule", "Faire revenir la viande"]
+        categorie:
+          type: string
+          example: "Plat principal"
+        tempsPreparation:
+          type: integer
+          example: 90
+        nbPersonnes:
+          type: integer
+          example: 6
+
+    CommentaireInput:
+      type: object
+      required:
+        - contenu
+      properties:
+        contenu:
+          type: string
+          example: "Excellent ! Je recommande vivement."
+
+    Erreur:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Une erreur est survenue."
+
+paths:
+  # ── Auth ──────────────────────────────────────────────────
+  /auth/inscription:
+    post:
+      tags: [Auth]
+      summary: Créer un compte
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilisateurInput'
+      responses:
+        '201':
+          description: Compte créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+        '409':
+          description: Email déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+
+  /auth/connexion:
+    post:
+      tags: [Auth]
+      summary: Se connecter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnexionInput'
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Identifiants incorrects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+
+  # ── Utilisateurs ──────────────────────────────────────────
+  /utilisateurs:
+    get:
+      tags: [Utilisateurs]
+      summary: Lister tous les utilisateurs
+      responses:
+        '200':
+          description: Liste des utilisateurs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Utilisateur'
+
+  /utilisateurs/{id}:
+    get:
+      tags: [Utilisateurs]
+      summary: Obtenir un utilisateur par ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Utilisateur trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilisateur'
+        '404':
+          description: Utilisateur introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+
+    put:
+      tags: [Utilisateurs]
+      summary: Modifier son profil (connecté)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nom:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Profil mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilisateur'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Action non autorisée
+        '404':
+          description: Utilisateur introuvable
+
+    delete:
+      tags: [Utilisateurs]
+      summary: Supprimer son compte (connecté)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Compte supprimé
+        '401':
+          description: Non authentifié
+        '403':
+          description: Action non autorisée
+
+  # ── Recettes ──────────────────────────────────────────────
+  /recettes:
+    get:
+      tags: [Recettes]
+      summary: Lister les recettes (avec filtres et tri)
+      parameters:
+        - name: ingredient
+          in: query
+          schema:
+            type: string
+          description: Filtrer par ingrédient (recherche partielle)
+        - name: auteur
+          in: query
+          schema:
+            type: string
+          description: Filtrer par ID auteur
+        - name: categorie
+          in: query
+          schema:
+            type: string
+          description: Filtrer par catégorie
+        - name: tri
+          in: query
+          schema:
+            type: string
+            enum: [date, popularite]
+          description: "Trier par date (défaut) ou popularité"
+      responses:
+        '200':
+          description: Liste des recettes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recette'
+
+    post:
+      tags: [Recettes]
+      summary: Ajouter une recette (connecté)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecetteInput'
+      responses:
+        '201':
+          description: Recette créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recette'
+        '400':
+          description: Données invalides
+        '401':
+          description: Non authentifié
+
+  /recettes/{id}:
+    get:
+      tags: [Recettes]
+      summary: Obtenir une recette par ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recette trouvée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recette'
+        '404':
+          description: Recette introuvable
+
+    put:
+      tags: [Recettes]
+      summary: Modifier une recette (auteur uniquement)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecetteInput'
+      responses:
+        '200':
+          description: Recette mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recette'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Action non autorisée
+        '404':
+          description: Recette introuvable
+
+    delete:
+      tags: [Recettes]
+      summary: Supprimer une recette (auteur uniquement)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recette supprimée
+        '401':
+          description: Non authentifié
+        '403':
+          description: Action non autorisée
+        '404':
+          description: Recette introuvable
+
+  # ── Commentaires ──────────────────────────────────────────
+  /recettes/{id}/commentaires:
+    post:
+      tags: [Commentaires]
+      summary: Ajouter un commentaire (connecté)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentaireInput'
+      responses:
+        '201':
+          description: Commentaire ajouté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Commentaire'
+        '400':
+          description: Contenu manquant
+        '401':
+          description: Non authentifié
+        '404':
+          description: Recette introuvable
+
+  /recettes/{id}/commentaires/{commentaireId}:
+    delete:
+      tags: [Commentaires]
+      summary: Supprimer un commentaire (auteur du commentaire)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentaireId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Commentaire supprimé
+        '401':
+          description: Non authentifié
+        '403':
+          description: Action non autorisée
+        '404':
+          description: Recette ou commentaire introuvable
+
+  # ── Likes ─────────────────────────────────────────────────
+  /recettes/{id}/likes:
+    post:
+      tags: [Likes]
+      summary: Liker / retirer le like d'une recette (connecté)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Like basculé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nbLikes:
+                    type: integer
+                  liked:
+                    type: boolean
+        '401':
+          description: Non authentifié
+        '404':
+          description: Recette introuvable
